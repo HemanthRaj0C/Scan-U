@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: scanu-db
+    environment:
+      POSTGRES_DB: scanu_db
+      POSTGRES_USER: scanu
+      POSTGRES_PASSWORD: scanu_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - scanu-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: scanu-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - scanu-network
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: scanu-backend
+    environment:
+      - FLASK_ENV=development
+      - DATABASE_URL=postgresql://scanu:scanu_password@postgres:5432/scanu_db
+      - REDIS_URL=redis://redis:6379/0
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend:/app/backend
+      - ./logs:/app/logs
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - scanu-network
+    command: python -m flask run --host=0.0.0.0 --port=5000
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: scanu-frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - scanu-network
+    environment:
+      - VITE_API_URL=http://localhost:5000
+
+volumes:
+  postgres_data:
+
+networks:
+  scanu-network:
+    driver: bridge
