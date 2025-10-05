@@ -1,0 +1,4 @@
+# ML Models Directory
+This directory stores trained machine learning models for vulnerability classification and false positive detection.
+
+Models are saved in joblib format and loaded at runtime.
